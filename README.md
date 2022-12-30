@@ -41,15 +41,21 @@ If any input file path is newer than any output file path, the command is execut
 
 ```bash
 forge ../TOOL/IMAGE_MAGICK/convert input.jpg output.jpg
+forge ../TOOL/IMAGE_MAGICK/convert "input file.jpg" "output file.jpg"
+forge @in:../TOOL/IMAGE_MAGICK/convert @in:input.jpg @in:output.jpg
+forge @in:../TOOL/IMAGE_MAGICK/convert "@in:input file.jpg" "@in:output file.jpg"
 ```
 
-Runs the command if the command executable or input file is newer than the output file.
+Runs the command if the executable file or the input file is newer than the output file.
 
 ```bash
+forge @from:convert_images.sh ../TOOL/IMAGE_MAGICK/convert input.jpg output.jpg
+forge @from:convert_images.sh ../TOOL/IMAGE_MAGICK/convert "input file.jpg" "output file.jpg"
 forge @from:convert_images.sh @in:../TOOL/IMAGE_MAGICK/convert @in:input.jpg @out:output.jpg
+forge @from:convert_images.sh @in:../TOOL/IMAGE_MAGICK/convert "@in:input file.jpg" "@out:output file.jpg"
 ```
 
-Runs the command if the command script or command executable or input file is newer than the output file.
+Runs the command if the script file or executable file or input file is newer than the output file.
 
 ## Version
 
