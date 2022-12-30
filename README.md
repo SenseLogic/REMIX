@@ -17,7 +17,7 @@ dmd -m64 forge.d
 ## Command line
 
 ```
-forge [argument] [argument ...]
+forge <argument> ...
 ```
 
 ### Roles
