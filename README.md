@@ -24,11 +24,11 @@ forge [argument] [argument ...]
 
 The first argument is treated as an input file path.
 
-If an argument ends with a file path extension, it is treated as an input file path.
+An argument with a file path extension is treated as an input file path.
 
-If the last argument ends with a file path extension, it is treated as an output file path.
+A last argument with a file path extension is treated as an output file path.
 
-If an argument has a role prefix, the prefix is removed and this role is used :
+An argument with a role prefix is treated as follows :
 
 ```
 @in: input file path
