@@ -26,7 +26,7 @@ The first argument is treated as an input file path.
 
 An argument with a file path extension is treated as an input file path.
 
-A last argument with a file path extension is treated as an output file path.
+The last argument with a file path extension is treated as an output file path.
 
 An argument with a role prefix is treated as follows :
 
