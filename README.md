@@ -31,11 +31,11 @@ The last argument with a file path extension is treated as an output file path.
 An argument with a role prefix is treated as follows :
 
 ```
+@: non file path
 @in: input file path
 @out: output file path
-@from: removed input file path
-@to: removed output file path
-@: ignored file path
+@from: source file path
+@to: target file path
 ```
 
 If any input file path is newer than any output file path, the command is executed with the provided arguments.
