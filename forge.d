@@ -25,7 +25,13 @@ import std.datetime : SysTime, UTC;
 import std.file : exists, getTimes;
 import std.stdio : writeln;
 import std.string : endsWith, indexOf, join, replace, startsWith;
-import std.process : execute, executeShell;
+import std.process : spawnShell, wait;
+
+// -- VARIABLES
+
+string[]
+    InputFilePathArray,
+    OutputFilePathArray;
 
 // -- FUNCTIONS
 
@@ -101,8 +107,12 @@ bool HasFileExtension(
             {
                 return false;
             }
-            else if ( character < 'a'
-                      || character > 'z' )
+            else if ( ! ( ( character >= 'a'
+                            && character <= 'z' )
+                          || ( character >= 'A'
+                               && character <= 'Z' )
+                          || ( character >= '0'
+                               && character <= '9' ) ) )
             {
                 return false;
             }
@@ -120,6 +130,8 @@ string GetExecutableFilePath(
 {
     string
         executable_file_path;
+
+    file_path = GetLogicalPath( file_path );
 
     if ( file_path.exists() )
     {
@@ -166,21 +178,19 @@ bool IsNewInputFile(
 // ~~
 
 bool HasNewInputFile(
-    string[] input_file_path_array,
-    string[] output_file_path_array
     )
 {
-    foreach ( output_file_path; output_file_path_array )
+    foreach ( output_file_path; OutputFilePathArray )
     {
         if ( !output_file_path.exists() )
         {
-            return false;
+            return true;
         }
     }
 
-    foreach ( input_file_path; input_file_path_array )
+    foreach ( input_file_path; InputFilePathArray )
     {
-        foreach ( output_file_path; output_file_path_array )
+        foreach ( output_file_path; OutputFilePathArray )
         {
             if ( input_file_path.exists()
                  && IsNewInputFile( input_file_path, output_file_path ) )
@@ -195,7 +205,7 @@ bool HasNewInputFile(
 
 // ~~
 
-string GetShellCommand(
+string GetCommand(
     string[] command_argument_array
     )
 {
@@ -215,48 +225,46 @@ string GetShellCommand(
 // ~~
 
 void ExecuteCommand(
-    string[] command_argument_array,
-    string[] input_file_path_array,
-    string[] output_file_path_array
+    string[] command_argument_array
     )
 {
     string
-        executable_file_path,
-        shell_command;
+        command,
+        executable_file_path;
 
     if ( command_argument_array.length > 0 )
     {
-        shell_command = GetShellCommand( command_argument_array );
+        command = GetCommand( command_argument_array );
 
-        executable_file_path = GetExecutableFilePath( GetLogicalPath( command_argument_array[ 0 ] ) );
-
-        if ( executable_file_path != "" )
+        if ( HasNewInputFile() )
         {
-            if ( HasNewInputFile( input_file_path_array, output_file_path_array ) )
-            {
-                writeln( "Executing command : ", shell_command );
+            writeln( "Executing command : ", command );
 
-                execute( command_argument_array );
-            }
-            else
-            {
-                writeln( "Skipping command : ", shell_command );
-            }
+            wait( spawnShell( command ) );
         }
         else
         {
-            if ( HasNewInputFile( input_file_path_array, output_file_path_array ) )
-            {
-                writeln( "Executing shell command : ", shell_command );
-
-                executeShell( shell_command );
-            }
-            else
-            {
-                writeln( "Skipping shell command : ", shell_command );
-            }
+            writeln( "Skipping command : ", command );
         }
     }
+}
+
+// ~~
+
+void AddInputFilePath(
+    string input_file_path
+    )
+{
+    InputFilePathArray ~= GetLogicalPath( input_file_path );
+}
+
+// ~~
+
+void AddOutputFilePath(
+    string output_file_path
+    )
+{
+    OutputFilePathArray ~= GetLogicalPath( output_file_path );
 }
 
 // ~~
@@ -268,19 +276,17 @@ void ProcessCommand(
     string
         executable_file_path;
     string[]
-        argument_array,
-        input_file_path_array,
-        output_file_path_array;
+        argument_array;
 
     foreach ( command_argument; command_argument_array )
     {
         if ( command_argument.startsWith( "@from:" ) )
         {
-            input_file_path_array ~= GetLogicalPath( command_argument[ 6 .. $ ] );
+            AddInputFilePath( command_argument[ 6 .. $ ] );
         }
         else if ( command_argument.startsWith( "@to:" ) )
         {
-            output_file_path_array ~= GetLogicalPath( command_argument[ 4 .. $ ] );
+            AddOutputFilePath( command_argument[ 4 .. $ ] );
         }
         else
         {
@@ -294,13 +300,13 @@ void ProcessCommand(
         {
             argument = argument[ 4 .. $ ];
 
-            input_file_path_array ~= GetLogicalPath( argument );
+            AddInputFilePath( argument );
         }
         else if ( argument.startsWith( "@out:" ) )
         {
             argument = argument[ 5 .. $ ];
 
-            output_file_path_array ~= GetLogicalPath( argument );
+            AddOutputFilePath( argument );
         }
         else if ( argument.startsWith( "@:" ) )
         {
@@ -308,30 +314,30 @@ void ProcessCommand(
         }
         else if ( argument_index == 0 )
         {
-            executable_file_path = GetExecutableFilePath( GetLogicalPath( argument ) );
+            executable_file_path = GetExecutableFilePath( argument );
 
             if ( executable_file_path != "" )
             {
-                input_file_path_array ~= executable_file_path;
+                AddInputFilePath( executable_file_path );
             }
         }
         else
         {
-            if ( HasFileExtension( GetLogicalPath( argument ) ) )
+            if ( HasFileExtension( argument ) )
             {
                 if ( argument_index == argument_array.length - 1 )
                 {
-                    output_file_path_array ~= GetLogicalPath( argument );
+                    AddOutputFilePath( argument );
                 }
                 else
                 {
-                    input_file_path_array ~= GetLogicalPath( argument );
+                    AddInputFilePath( argument );
                 }
             }
         }
     }
 
-    ExecuteCommand( argument_array, input_file_path_array, output_file_path_array );
+    ExecuteCommand( argument_array );
 }
 
 // ~~
