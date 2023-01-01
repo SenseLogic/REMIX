@@ -48,6 +48,8 @@ An argument starting with a role prefix is treated as follows :
 @to:<target file path>
 ```
 
+Source and target files are removed from the executed command line.
+
 ### Examples
 
 ```bash
