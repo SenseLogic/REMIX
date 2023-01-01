@@ -6,8 +6,8 @@ Update command manager.
 
 ## Description
 
-*   Parses the command to find the executable, input and output files;
-*   Runs the command only if an output file is missing or if the executable file or an input file is newer than an output file.
+*   Parses the command to find its executable, input and output files;
+*   Runs the command only if an output file is missing or if the command executable or some input files are newer than the output files.
 
 ## Installation
 
