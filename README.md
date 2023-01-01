@@ -57,7 +57,7 @@ remix @in:../TOOL/IMAGE_MAGICK/convert @in:input.jpg @in:output.jpg
 remix @in:../TOOL/IMAGE_MAGICK/convert "@in:input file.jpg" "@in:output file.jpg"
 ```
 
-Runs the command if the executable file or input file is newer than the output file.
+Runs the command if the executable or the input file is newer than the output file.
 
 ```bash
 remix @force ../TOOL/IMAGE_MAGICK/convert input.jpg output.jpg
