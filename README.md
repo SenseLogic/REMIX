@@ -33,11 +33,11 @@ remix [<option> ...] <command> [<argument> ...]
 
 ### Arguments
 
-An argument with a file path extension is treated as an input file path.
+An argument is treated as an input file path if it ends with a file extension.
 
-The last argument with a file path extension is treated as an output file path.
+The last argument is treated as an output file path if it ends with a file extension.
 
-An argument with a role prefix is treated as follows :
+An argument starting with a role prefix is treated as follows :
 
 ```
 @:<non file path>
