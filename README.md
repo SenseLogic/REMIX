@@ -31,10 +31,6 @@ remix [<option> ...] <command> [<argument> ...]
 @force : run the command unconditionally
 ```
 
-### Command
-
-The command is treated as an input file path.
-
 ### Arguments
 
 An argument with a file path extension is treated as an input file path.
