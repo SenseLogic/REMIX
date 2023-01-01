@@ -1,3 +1,3 @@
 # Credits
 
-Thanks to Freepik and Flaticon.com for the free drawing used in the logo.
+Thanks to Sergei Kokota and Icon-icons.com for the free drawing used in the logo.
