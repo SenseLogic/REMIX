@@ -6,7 +6,7 @@ Update command manager.
 
 ## Description
 
-Remix parses the provided command to find the command, input and output files, and runs it only if an output file is missing or if the command file or an input file path is newer than an output file.
+Remix parses the provided command to find the executable, input and output files, and runs this command only if an output file is missing or if the executable file or one of the input files is newer than one of the output files.
 
 ## Installation
 
@@ -56,7 +56,7 @@ remix @in:../TOOL/IMAGE_MAGICK/convert @in:input.jpg @in:output.jpg
 remix @in:../TOOL/IMAGE_MAGICK/convert "@in:input file.jpg" "@in:output file.jpg"
 ```
 
-Runs the command if the executable file or the input file is newer than the output file.
+Runs the command if the executable file or input file is newer than the output file.
 
 ```bash
 remix @force ../TOOL/IMAGE_MAGICK/convert input.jpg output.jpg
