@@ -30,6 +30,8 @@ remix [<option> ...] <command> [<argument> ...]
 ```
 @clean : remove the output files
 @force : run the command unconditionally
+@from:<input file path> : add a hidden input file
+@to:<output file path> : add a hidden output file
 ```
 
 ### Arguments
@@ -38,17 +40,13 @@ An argument is treated as an input file path if it ends with a file extension.
 
 The last argument is treated as an output file path if it ends with a file extension.
 
-An argument starting with a role prefix is treated as follows :
+An argument starting with an explicit role prefix is treated as follows :
 
 ```
 @:<non file path>
 @in:<input file path>
 @out:<output file path>
-@from:<source file path>
-@to:<target file path>
 ```
-
-Source and target files are removed from the executed command line.
 
 ### Examples
 
