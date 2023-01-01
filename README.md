@@ -2,7 +2,11 @@
 
 # Remix
 
-Update command runner.
+Update command manager.
+
+## Description
+
+Remix parses the provided command to find input and output files, and runs it only if an output file is missing or if an input file path is newer than an output file.
 
 ## Installation
 
@@ -47,8 +51,6 @@ An argument with a role prefix is treated as follows :
 @to:<target file path>
 ```
 
-If any input file path is newer than any output file path, the command is executed with the provided arguments.
-
 ### Examples
 
 ```bash
@@ -69,18 +71,9 @@ remix @force @in:../TOOL/IMAGE_MAGICK/convert "@in:input file.jpg" "@in:output f
 
 Runs the command unconditionally.
 
-```bash
-remix @from:convert_images.sh ../TOOL/IMAGE_MAGICK/convert input.jpg output.jpg
-remix @from:convert_images.sh ../TOOL/IMAGE_MAGICK/convert "input file.jpg" "output file.jpg"
-remix @from:convert_images.sh @in:../TOOL/IMAGE_MAGICK/convert @in:input.jpg @out:output.jpg
-remix @from:convert_images.sh @in:../TOOL/IMAGE_MAGICK/convert "@in:input file.jpg" "@out:output file.jpg"
-```
-
-Runs the command if the script file or executable file or input file is newer than the output file.
-
 ## Version
 
-0.1
+0.2
 
 ## Author
 
