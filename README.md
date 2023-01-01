@@ -6,7 +6,8 @@ Update command manager.
 
 ## Description
 
-Remix parses the provided command to find the executable, input and output files, and runs this command only if an output file is missing or if the executable file or one of the input files is newer than one of the output files.
+*   parses the command to find the executable, input and output files;
+*   runs the command only if an output file is missing or if the executable file or one of the input files is newer than one of the output files.
 
 ## Installation
 
