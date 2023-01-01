@@ -1,34 +1,37 @@
 /*
-    This file is part of the Forge distribution.
+    This file is part of the Remix distribution.
 
-    https://github.com/senselogic/FORGE
+    https://github.com/senselogic/REMIX
 
     Copyright (C) 2022 Eric Pelzer (ecstatic.coder@gmail.com)
 
-    Forge is free software: you can redistribute it and/or modify
+    Remix is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, version 3.
 
-    Forge is distributed in the hope that it will be useful,
+    Remix is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with Forge.  If not, see <http://www.gnu.org/licenses/>.
+    along with Remix.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 // -- IMPORTS
 
 import core.stdc.stdlib : exit;
 import std.datetime : SysTime, UTC;
-import std.file : exists, getTimes;
+import std.file : exists, getTimes, remove;
 import std.stdio : writeln;
 import std.string : endsWith, indexOf, join, replace, startsWith;
 import std.process : spawnShell, wait;
 
 // -- VARIABLES
 
+bool
+    CleanOptionIsEnabled,
+    ForceOptionIsEnabled;
 string[]
     InputFilePathArray,
     OutputFilePathArray;
@@ -158,6 +161,24 @@ string GetExecutableFilePath(
 
 // ~~
 
+void AddInputFilePath(
+    string input_file_path
+    )
+{
+    InputFilePathArray ~= GetLogicalPath( input_file_path );
+}
+
+// ~~
+
+void AddOutputFilePath(
+    string output_file_path
+    )
+{
+    OutputFilePathArray ~= GetLogicalPath( output_file_path );
+}
+
+// ~~
+
 bool IsNewInputFile(
     string input_file_path,
     string output_file_path
@@ -211,15 +232,62 @@ string GetCommand(
 {
     foreach ( ref command_argument; command_argument_array )
     {
-        if ( command_argument.indexOf( ' ' ) >= 0
-             && !command_argument.startsWith( '"' )
-             && !command_argument.endsWith( '"' ) )
+        if ( command_argument == ""
+             || command_argument.indexOf( ' ' ) >= 0
+             || command_argument.indexOf( '"' ) >= 0 )
         {
             command_argument = "\"" ~ command_argument ~ "\"";
         }
     }
 
     return command_argument_array.join( ' ' );
+}
+
+// ~~
+
+void RemoveFile(
+    string file_path
+    )
+{
+    try
+    {
+        writeln( "Removing file : ", file_path );
+
+        file_path.remove();
+    }
+    catch ( Exception exception )
+    {
+        Abort( "Can't remove file : " ~ file_path, exception );
+    }
+}
+
+// ~~
+
+void RemoveOuputFiles(
+    )
+{
+    foreach ( output_file_path; OutputFilePathArray )
+    {
+        RemoveFile( output_file_path );
+    }
+}
+
+// ~~
+
+void ExecuteCommand(
+    string command
+    )
+{
+    try
+    {
+        writeln( "Executing command : ", command );
+
+        wait( spawnShell( command ) );
+    }
+    catch ( Exception exception )
+    {
+        Abort( "Can't execute command : " ~ command, exception );
+    }
 }
 
 // ~~
@@ -236,11 +304,15 @@ void ExecuteCommand(
     {
         command = GetCommand( command_argument_array );
 
-        if ( HasNewInputFile() )
+        if ( CleanOptionIsEnabled )
         {
-            writeln( "Executing command : ", command );
+            RemoveOuputFiles();
+        }
 
-            wait( spawnShell( command ) );
+        if ( ForceOptionIsEnabled
+             || HasNewInputFile() )
+        {
+            ExecuteCommand( command );
         }
         else
         {
@@ -251,70 +323,67 @@ void ExecuteCommand(
 
 // ~~
 
-void AddInputFilePath(
-    string input_file_path
-    )
-{
-    InputFilePathArray ~= GetLogicalPath( input_file_path );
-}
-
-// ~~
-
-void AddOutputFilePath(
-    string output_file_path
-    )
-{
-    OutputFilePathArray ~= GetLogicalPath( output_file_path );
-}
-
-// ~~
-
-void ProcessCommand(
-    string[] command_argument_array
+void main(
+    string[] argument_array
     )
 {
     string
         executable_file_path;
     string[]
-        argument_array;
+        command_argument_array;
 
-    foreach ( command_argument; command_argument_array )
+    CleanOptionIsEnabled = false;
+    ForceOptionIsEnabled = false;
+    InputFilePathArray = null;
+    OutputFilePathArray = null;
+
+    argument_array = argument_array[ 1 .. $ ];
+
+    foreach ( argument; argument_array )
     {
-        if ( command_argument.startsWith( "@from:" ) )
+        if ( argument.startsWith( "@clean" ) )
         {
-            AddInputFilePath( command_argument[ 6 .. $ ] );
+            CleanOptionIsEnabled = true;
         }
-        else if ( command_argument.startsWith( "@to:" ) )
+        else if ( argument.startsWith( "@force" ) )
         {
-            AddOutputFilePath( command_argument[ 4 .. $ ] );
+            ForceOptionIsEnabled = true;
+        }
+        else if ( argument.startsWith( "@from:" ) )
+        {
+            AddInputFilePath( argument[ 6 .. $ ] );
+        }
+        else if ( argument.startsWith( "@to:" ) )
+        {
+            AddOutputFilePath( argument[ 4 .. $ ] );
         }
         else
         {
-            argument_array ~= command_argument;
+            command_argument_array ~= argument;
         }
     }
 
-    foreach ( argument_index, ref argument; argument_array )
+    foreach ( command_argument_index, ref command_argument; command_argument_array )
     {
-        if ( argument.startsWith( "@in:" ) )
+        if ( command_argument.startsWith( "@in:" ) )
         {
-            argument = argument[ 4 .. $ ];
+            command_argument = command_argument[ 4 .. $ ];
 
-            AddInputFilePath( argument );
+            AddInputFilePath( command_argument );
         }
-        else if ( argument.startsWith( "@out:" ) )
+        else if ( command_argument.startsWith( "@out:" ) )
         {
-            argument = argument[ 5 .. $ ];
+            command_argument = command_argument[ 5 .. $ ];
 
-            AddOutputFilePath( argument );
+            AddOutputFilePath( command_argument );
         }
-        else if ( argument.startsWith( "@:" ) )
+        else if ( command_argument.startsWith( "@:" ) )
         {
-            argument = argument[ 2 .. $ ];
+            command_argument = command_argument[ 2 .. $ ];
         }
-        else if ( argument_index == 0 )
+        else if ( command_argument_index == 0 )
         {
-            executable_file_path = GetExecutableFilePath( argument );
+            executable_file_path = GetExecutableFilePath( command_argument );
 
             if ( executable_file_path != "" )
             {
@@ -323,28 +392,19 @@ void ProcessCommand(
         }
         else
         {
-            if ( HasFileExtension( argument ) )
+            if ( HasFileExtension( command_argument ) )
             {
-                if ( argument_index == argument_array.length - 1 )
+                if ( command_argument_index == command_argument_array.length - 1 )
                 {
-                    AddOutputFilePath( argument );
+                    AddOutputFilePath( command_argument );
                 }
                 else
                 {
-                    AddInputFilePath( argument );
+                    AddInputFilePath( command_argument );
                 }
             }
         }
     }
 
-    ExecuteCommand( argument_array );
-}
-
-// ~~
-
-void main(
-    string[] argument_array
-    )
-{
-    ProcessCommand( argument_array[ 1 .. $ ] );
+    ExecuteCommand( command_argument_array );
 }

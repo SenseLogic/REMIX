@@ -1,4 +1,4 @@
 #!/bin/sh
 set -x
-dmd -O -m64 forge.d
+dmd -O -m64 remix.d
 rm *.o
