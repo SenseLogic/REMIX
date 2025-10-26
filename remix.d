@@ -21,8 +21,9 @@
 // -- IMPORTS
 
 import core.stdc.stdlib : exit;
+import std.conv : to;
 import std.datetime : SysTime, UTC;
-import std.file : exists, getTimes, remove;
+import std.file : exists, getSize, getTimes, remove;
 import std.stdio : writeln;
 import std.string : endsWith, indexOf, join, replace, startsWith;
 import std.process : spawnShell, wait;
@@ -35,6 +36,10 @@ bool
 string[]
     InputFilePathArray,
     OutputFilePathArray;
+long[]
+    MinimumOutputFileByteCountArray,
+    MaximumOutputFileByteCountArray,
+    TryCommandArgumentIndexArray;
 
 // -- FUNCTIONS
 
@@ -67,6 +72,30 @@ void Abort(
     PrintError( exception.msg );
 
     exit( -1 );
+}
+
+// ~~
+
+long GetByteCount(
+    string text
+    )
+{
+    if ( text.endsWith( 'k' ) )
+    {
+        return text[ 0 .. $ - 1 ].to!long() * 1024;
+    }
+    else if ( text.endsWith( 'm' ) )
+    {
+        return text[ 0 .. $ - 1 ].to!long() * 1024 * 1024;
+    }
+    else if ( text.endsWith( 'g' ) )
+    {
+        return text[ 0 .. $ - 1 ].to!long() * 1024 * 1024 * 1024;
+    }
+    else
+    {
+        return text.to!long();
+    }
 }
 
 // ~~
@@ -171,10 +200,23 @@ void AddInputFilePath(
 // ~~
 
 void AddOutputFilePath(
-    string output_file_path
+    string output_file_path,
+    long minimum_output_file_byte_count = -1,
+    long maximum_output_file_byte_count = -1
     )
 {
     OutputFilePathArray ~= GetLogicalPath( output_file_path );
+    MinimumOutputFileByteCountArray ~= minimum_output_file_byte_count;
+    MaximumOutputFileByteCountArray ~= maximum_output_file_byte_count;
+}
+
+// ~~
+
+void AddTryCommandArgumentIndex(
+    long try_command_argument_index
+    )
+{
+    TryCommandArgumentIndexArray ~= try_command_argument_index;
 }
 
 // ~~
@@ -226,21 +268,55 @@ bool HasNewInputFile(
 
 // ~~
 
-string GetCommand(
-    string[] command_argument_array
+bool IsTryCommandArgumentIndex(
+    long command_argument_index,
+    long try_index
     )
 {
-    foreach ( ref command_argument; command_argument_array )
+    foreach ( try_command_argument_index_index, try_command_argument_index; TryCommandArgumentIndexArray )
     {
-        if ( command_argument == ""
-             || command_argument.indexOf( ' ' ) >= 0
-             || command_argument.indexOf( '"' ) >= 0 )
+        if ( command_argument_index == try_command_argument_index
+             && try_command_argument_index_index != try_index )
         {
-            command_argument = "\"" ~ command_argument ~ "\"";
+            return false;
         }
     }
 
-    return command_argument_array.join( ' ' );
+    return true;
+}
+
+// ~~
+
+string GetCommand(
+    string[] command_argument_array,
+    long try_index
+    )
+{
+    string[]
+        quoted_command_argument_array;
+
+    foreach ( command_argument_index, command_argument; command_argument_array )
+    {
+        if ( IsTryCommandArgumentIndex( command_argument_index, try_index ) )
+        {
+            if ( command_argument == ""
+                 || command_argument.indexOf( ' ' ) >= 0
+                 || command_argument.indexOf( '"' ) >= 0
+                 || command_argument.indexOf( '^' ) >= 0
+                 || command_argument.indexOf( '&' ) >= 0
+                 || command_argument.indexOf( '<' ) >= 0
+                 || command_argument.indexOf( '>' ) >= 0 )
+            {
+                quoted_command_argument_array ~= "\"" ~ command_argument ~ "\"";
+            }
+            else
+            {
+                quoted_command_argument_array ~= command_argument;
+            }
+        }
+    }
+
+    return quoted_command_argument_array.join( ' ' );
 }
 
 // ~~
@@ -263,13 +339,60 @@ void RemoveFile(
 
 // ~~
 
-void RemoveOuputFiles(
+void RemoveOutputFiles(
     )
 {
     foreach ( output_file_path; OutputFilePathArray )
     {
         RemoveFile( output_file_path );
     }
+}
+
+// ~~
+
+bool HasOutputFile(
+    string output_file_path,
+    long minimum_output_file_byte_count,
+    long maximum_output_file_byte_count
+    )
+{
+    long
+        output_file_byte_count;
+
+    if ( exists( output_file_path ) )
+    {
+        output_file_byte_count = getSize( output_file_path );
+
+        if ( ( minimum_output_file_byte_count < 0
+               || output_file_byte_count >= minimum_output_file_byte_count )
+             && ( maximum_output_file_byte_count < 0
+                  || output_file_byte_count <= maximum_output_file_byte_count ) )
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ~~
+
+bool HasOutputFiles(
+    )
+{
+    foreach ( output_file_path_index, output_file_path; OutputFilePathArray )
+    {
+        if ( !HasOutputFile(
+                 output_file_path,
+                 MinimumOutputFileByteCountArray[ output_file_path_index ],
+                 MaximumOutputFileByteCountArray[ output_file_path_index ]
+                 ) )
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // ~~
@@ -296,28 +419,46 @@ void ExecuteCommand(
     string[] command_argument_array
     )
 {
+    long
+        try_index;
     string
         command,
         executable_file_path;
 
     if ( command_argument_array.length > 0 )
     {
-        command = GetCommand( command_argument_array );
+        try_index = 0;
 
-        if ( CleanOptionIsEnabled )
+        do
         {
-            RemoveOuputFiles();
-        }
+            command = GetCommand( command_argument_array, try_index );
 
-        if ( ForceOptionIsEnabled
-             || HasNewInputFile() )
-        {
-            ExecuteCommand( command );
+            if ( CleanOptionIsEnabled )
+            {
+                RemoveOutputFiles();
+            }
+
+            if ( ForceOptionIsEnabled
+                 || HasNewInputFile()
+                 || try_index > 0 )
+            {
+                ExecuteCommand( command );
+
+                if ( HasOutputFiles() )
+                {
+                    break;
+                }
+            }
+            else
+            {
+                writeln( "Skipping command : ", command );
+
+                break;
+            }
+
+            ++try_index;
         }
-        else
-        {
-            writeln( "Skipping command : ", command );
-        }
+        while ( try_index < TryCommandArgumentIndexArray.length );
     }
 }
 
@@ -327,6 +468,10 @@ void main(
     string[] argument_array
     )
 {
+    long
+        colon_character_index,
+        maximum_output_file_byte_count,
+        minimum_output_file_byte_count;
     string
         executable_file_path;
     string[]
@@ -376,6 +521,30 @@ void main(
             command_argument = command_argument[ 5 .. $ ];
 
             AddOutputFilePath( command_argument );
+        }
+        else if ( command_argument.startsWith( "@+" ) )
+        {
+            colon_character_index = command_argument.indexOf( ':' );
+            minimum_output_file_byte_count = GetByteCount( command_argument[ 2 .. colon_character_index ] );
+            maximum_output_file_byte_count = -1;
+            command_argument = command_argument[ colon_character_index + 1 .. $ ];
+
+            AddOutputFilePath( command_argument, minimum_output_file_byte_count, maximum_output_file_byte_count );
+        }
+        else if ( command_argument.startsWith( "@-" ) )
+        {
+            colon_character_index = command_argument.indexOf( ':' );
+            minimum_output_file_byte_count = -1;
+            maximum_output_file_byte_count = GetByteCount( command_argument[ 2 .. colon_character_index ] );
+            command_argument = command_argument[ colon_character_index + 1 .. $ ];
+
+            AddOutputFilePath( command_argument, minimum_output_file_byte_count, maximum_output_file_byte_count );
+        }
+        else if ( command_argument.startsWith( "@try:" ) )
+        {
+            AddTryCommandArgumentIndex( command_argument_index );
+
+            command_argument = command_argument[ 5 .. $ ];
         }
         else if ( command_argument.startsWith( "@:" ) )
         {

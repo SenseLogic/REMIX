@@ -22,55 +22,64 @@ dmd -m64 remix.d
 ## Command line
 
 ```
-remix [<option> ...] <command> [<argument> ...]
+remix [{option} ...] {command} [{argument} ...]
 ```
 
-### Options
+### Arguments
 
 ```
 @clean : remove the output files
 @force : run the command unconditionally
-@from:<input file path> : add a hidden input file
-@to:<output file path> : add a hidden output file
+@from:{hidden input file path}
+@to:{hidden output file path}
+@:{ignored file path}
+@in:{input file path}
+@out:{output file path}
+@+{minimum output file size}:{output file path}
+@-{minimum output file size}:{output file path}
+@try:{tentative argument}
 ```
-
-### Arguments
 
 An argument is treated as an input file path if it ends with a file extension.
 
 The last argument is treated as an output file path if it ends with a file extension.
 
-An argument starting with an explicit role prefix is treated as follows :
-
-```
-@:<non file path>
-@in:<input file path>
-@out:<output file path>
-```
-
 ### Examples
 
 ```bash
-remix ../TOOL/IMAGE_MAGICK/convert input.jpg output.jpg
-remix ../TOOL/IMAGE_MAGICK/convert "input file.jpg" "output file.jpg"
-remix @in:../TOOL/IMAGE_MAGICK/convert @in:input.jpg @in:output.jpg
-remix @in:../TOOL/IMAGE_MAGICK/convert "@in:input file.jpg" "@in:output file.jpg"
+remix ../IMAGE_MAGICK/magick input.jpg output.jpg
+remix ../IMAGE_MAGICK/magick "input file.jpg" "output file.jpg"
+remix @in:../IMAGE_MAGICK/magick @in:input.jpg @in:output.jpg
+remix @in:../IMAGE_MAGICK/magick "@in:input file.jpg" "@in:output file.jpg"
+remix @in:../IMAGE_MAGICK/magick "@in:input file.jpg" "@in:output file.jpg"
 ```
 
-Runs the command if the executable or the input file is newer than the output file.
+Generate the output file if the executable or the input file is newer than the output file.
 
 ```bash
-remix @force ../TOOL/IMAGE_MAGICK/convert input.jpg output.jpg
-remix @force ../TOOL/IMAGE_MAGICK/convert "input file.jpg" "output file.jpg"
-remix @force @in:../TOOL/IMAGE_MAGICK/convert @in:input.jpg @in:output.jpg
-remix @force @in:../TOOL/IMAGE_MAGICK/convert "@in:input file.jpg" "@in:output file.jpg"
+remix @force ../IMAGE_MAGICK/magick input.jpg output.jpg
+remix @force ../IMAGE_MAGICK/magick "input file.jpg" "output file.jpg"
+remix @force @in:../IMAGE_MAGICK/magick @in:input.jpg @in:output.jpg
+remix @force @in:../IMAGE_MAGICK/magick "@in:input file.jpg" "@in:output file.jpg"
 ```
 
-Runs the command unconditionally.
+Generate the output file unconditionally.
+
+```bash
+remix ../IMAGE_MAGICK/magick -auto-orient -filter Lanczos "input file.jpg" -resize "1200x630^" -gravity center -extent 1200x630 -quality 85 -strip "output file.jpg"
+```
+
+Generate the output file if the executable or the input file is newer than the output file.
+
+```bash
+remix /IMAGE_MAGICK/magick -auto-orient -filter Lanczos "input file.jpg" -resize "1920x1920>" -quality @try:60 @try:50 @try:40 @try:30 -strip "@-160k:output file.avif"
+```
+
+Generate the output file if the executable or the input file is newer than the output file, retrying with a lower quality setting if the output file takes more than 160 KB.
 
 ## Version
 
-0.2
+0.3
 
 ## Author
 
